@@ -16,28 +16,41 @@ const (
 	SongLinkUserCountry = "BE"
 )
 
-func filterMessage(message string) bool {
+var (
+	re    = regexp.MustCompile(`http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+`)
+	hosts = map[string]struct{}{
+		"open.spotify.com":   {},
+		"www.spotify.com":    {},
+		"music.youtube.com":  {},
+		"www.youtube.com":    {},
+		"youtu.be":           {},
+		"soundcloud.com":     {},
+		"www.soundcloud.com": {},
+		"music.apple.com":    {},
+		"www.apple.com":      {},
+	}
+)
 
-	re := regexp.MustCompile(`http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+`)
+func filterMessage(message string) (bool, string) {
+
 	urls := re.FindAllString(message, -1)
 
 	if len(urls) == 0 {
-		return false
+		return false, ""
 	}
 
 	u, err := url.Parse(urls[0])
 	if err != nil {
-		return false
+		return false, ""
 	}
 
 	host := strings.ToLower(u.Host)
 
-	switch host {
-	case "open.spotify.com", "www.spotify.com", "music.youtube.com", "www.youtube.com", "youtu.be", "soundcloud.com", "www.soundcloud.com", "music.apple.com", "www.apple.com":
-		return true
-	default:
-		return false
+	if _, ok := hosts[host]; ok {
+		return true, u.String()
 	}
+
+	return false, ""
 }
 
 func buildSongLinkUrl(musicUrl string) (string, error) {

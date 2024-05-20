@@ -165,11 +165,12 @@ func HandleBotUpdate(r *http.Request, telegramBaseUrl string, groupId int) error
 		return fmt.Errorf("invalid group id: %d", update.Message.Chat.ID)
 	}
 
-	if !filterMessage(update.Message.Text) {
+	ok, url := filterMessage(update.Message.Text)
+	if !ok {
 		return fmt.Errorf("invalid url: %s", update.Message.Text)
 	}
 
-	songLinkdata, err := GetSongLinkData(update.Message.Text)
+	songLinkdata, err := GetSongLinkData(url)
 	if err != nil {
 		return err
 	}
