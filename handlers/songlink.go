@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -15,8 +16,16 @@ const (
 	SongLinkUserCountry = "BE"
 )
 
-func filterMessages(message string) bool {
-	u, err := url.Parse(message)
+func filterMessage(message string) bool {
+
+	re := regexp.MustCompile(`http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+`)
+	urls := re.FindAllString(message, -1)
+
+	if len(urls) == 0 {
+		return false
+	}
+
+	u, err := url.Parse(urls[0])
 	if err != nil {
 		return false
 	}
