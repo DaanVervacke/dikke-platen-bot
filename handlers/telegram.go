@@ -23,7 +23,7 @@ func buildTelegramWebhookUrl(telegramBaseUrl string, webhookUrl string) (string,
 	params := url.Values{}
 	params.Add("url", webhookUrl)
 
-	allowedUpdates, _ := json.Marshal([]string{"message"})
+	allowedUpdates, _ := json.Marshal([]string{"channel_post"})
 	params.Add("allowed_updates", string(allowedUpdates))
 
 	baseUrl.RawQuery = params.Encode()
