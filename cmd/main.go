@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-
-	"github.com/joho/godotenv"
 )
 
 const (
@@ -16,19 +14,14 @@ const (
 )
 
 func getEnvVar(key string) string {
-	value, ok := os.LookupEnv(key)
-	if !ok {
+	value := os.Getenv(key)
+	if value == "" {
 		log.Fatalf("Missing required environment variable %s", key)
 	}
 	return value
 }
 
 func main() {
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
 
 	telegramAPIToken := getEnvVar("TELEGRAM_API_TOKEN")
 	webhookUrl := getEnvVar("WEBHOOK_URL")
