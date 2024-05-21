@@ -1,13 +1,20 @@
-FROM golang:1.22
+# Build
+FROM golang:1.22 AS build
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 COPY . .
-RUN go build -v -o /usr/local/bin/app ./cmd
+RUN CGO_ENABLED=0 GOOS=linux go build -o /main ./cmd/
+
+# Run
+FROM scratch
+
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=build /main /main
 
 EXPOSE 8080
 
-CMD ["app"]
+CMD ["/main"]
