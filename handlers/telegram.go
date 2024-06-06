@@ -173,7 +173,7 @@ func HandleBotUpdate(r *http.Request, telegramBaseUrl string, groupId int, webho
 
 	ok, url := filterMessage(update.Message.Text)
 	if !ok {
-		return fmt.Errorf("invalid url: %s", update.Message.Text)
+		return fmt.Errorf("invalid url")
 	}
 
 	songLinkdata, err := GetSongLinkData(url)
