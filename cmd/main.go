@@ -25,6 +25,7 @@ func main() {
 
 	telegramAPIToken := getEnvVar("TELEGRAM_API_TOKEN")
 	webhookUrl := getEnvVar("WEBHOOK_URL")
+	webhookSecret := getEnvVar("WEBHOOK_SECRET")
 
 	telegramGroupIDStr := getEnvVar("TELEGRAM_GROUP_ID")
 
@@ -37,13 +38,13 @@ func main() {
 
 	router := http.NewServeMux()
 	router.HandleFunc("/dikkeplaten", func(w http.ResponseWriter, r *http.Request) {
-		err := handlers.HandleBotUpdate(r, baseURL, telegramGroupID)
+		err := handlers.HandleBotUpdate(r, baseURL, telegramGroupID, webhookSecret)
 		if err != nil {
 			log.Print(err)
 		}
 	})
 
-	err = handlers.SetTelegramWebhook(baseURL, webhookUrl)
+	err = handlers.SetTelegramWebhook(baseURL, webhookUrl, webhookSecret)
 	if err != nil {
 		log.Fatalf("Error setting Telegram webhook: %v", err)
 	}

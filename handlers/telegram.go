@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func buildTelegramWebhookUrl(telegramBaseUrl string, webhookUrl string) (string, error) {
+func buildTelegramWebhookUrl(telegramBaseUrl string, webhookUrl string, webhookSecret string) (string, error) {
 	baseUrl, err := url.Parse(telegramBaseUrl)
 	if err != nil {
 		return "", fmt.Errorf("error parsing base URL: %v", err)
@@ -25,6 +25,8 @@ func buildTelegramWebhookUrl(telegramBaseUrl string, webhookUrl string) (string,
 
 	allowedUpdates, _ := json.Marshal([]string{"channel_post"})
 	params.Add("allowed_updates", string(allowedUpdates))
+
+	params.Add("secret_token", webhookSecret)
 
 	baseUrl.RawQuery = params.Encode()
 
@@ -88,8 +90,8 @@ func buildTelegramEditMessageUrl(telegramBaseUrl string, update types.TelegramBo
 	return baseUrl.String(), nil
 }
 
-func SetTelegramWebhook(telegramBaseUrl string, webhookUrl string) error {
-	url, err := buildTelegramWebhookUrl(telegramBaseUrl, webhookUrl)
+func SetTelegramWebhook(telegramBaseUrl string, webhookUrl string, webhookSecret string) error {
+	url, err := buildTelegramWebhookUrl(telegramBaseUrl, webhookUrl, webhookSecret)
 	if err != nil {
 		return err
 	}
@@ -146,7 +148,11 @@ func updateTelegramMessage(telegramBaseUrl string, update types.TelegramBotUpdat
 	return nil
 }
 
-func HandleBotUpdate(r *http.Request, telegramBaseUrl string, groupId int) error {
+func HandleBotUpdate(r *http.Request, telegramBaseUrl string, groupId int, webhookSecret string) error {
+
+	if r.Header.Get("X-Telegram-Bot-Api-Secret-Token") != webhookSecret {
+		return fmt.Errorf("invalid secret token")
+	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
