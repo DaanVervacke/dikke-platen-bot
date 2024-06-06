@@ -10,9 +10,12 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /main ./cmd/
 
 # Run
-FROM scratch
+FROM alpine:latest
 
-COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+RUN apk --no-cache add ca-certificates bash curl
+
+SHELL ["/bin/bash", "-c"]
+
 COPY --from=build /main /main
 
 EXPOSE 8080
