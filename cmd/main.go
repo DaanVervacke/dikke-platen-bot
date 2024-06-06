@@ -37,11 +37,14 @@ func main() {
 	baseURL := fmt.Sprintf("%s%s", TelegramBaseURL, telegramAPIToken)
 
 	router := http.NewServeMux()
-	router.HandleFunc("/dikkeplaten", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("POST /dikkeplaten", func(w http.ResponseWriter, r *http.Request) {
 		err := handlers.HandleBotUpdate(r, baseURL, telegramGroupID, webhookSecret)
 		if err != nil {
 			log.Print(err)
 		}
+	})
+	router.HandleFunc("GET /healthcheck", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
 	})
 
 	err = handlers.SetTelegramWebhook(baseURL, webhookUrl, webhookSecret)
