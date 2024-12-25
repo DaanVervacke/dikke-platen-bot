@@ -1,5 +1,5 @@
 # Build
-FROM golang:1.22 AS build
+FROM golang:1.23.4 AS build
 
 WORKDIR /app
 
@@ -18,6 +18,6 @@ SHELL ["/bin/bash", "-c"]
 
 COPY --from=build /main /main
 
-EXPOSE 8080
+EXPOSE 8888
 
 CMD ["/main"]
