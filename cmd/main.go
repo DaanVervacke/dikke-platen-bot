@@ -22,9 +22,8 @@ func getEnvVar(key string) string {
 }
 
 func main() {
-
 	telegramAPIToken := getEnvVar("TELEGRAM_API_TOKEN")
-	webhookUrl := getEnvVar("WEBHOOK_URL")
+	webhookURL := getEnvVar("WEBHOOK_URL")
 	webhookSecret := getEnvVar("WEBHOOK_SECRET")
 
 	telegramGroupIDStr := getEnvVar("TELEGRAM_GROUP_ID")
@@ -47,11 +46,10 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	err = handlers.SetTelegramWebhook(baseURL, webhookUrl, webhookSecret)
+	err = handlers.SetTelegramWebhook(baseURL, webhookURL, webhookSecret)
 	if err != nil {
 		log.Fatalf("Error setting Telegram webhook: %v", err)
 	}
 
 	log.Fatal(http.ListenAndServe(":8080", router))
-
 }

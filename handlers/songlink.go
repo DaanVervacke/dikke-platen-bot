@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	re    = regexp.MustCompile(`http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+`)
+	re    = regexp.MustCompile(`https?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(),]|%[0-9a-fA-F][0-9a-fA-F])+`)
 	hosts = map[string]struct{}{
 		"open.spotify.com":   {},
 		"www.spotify.com":    {},
@@ -32,14 +32,13 @@ var (
 )
 
 func filterMessage(message string) (bool, string) {
+	musicURLs := re.FindAllString(message, -1)
 
-	urls := re.FindAllString(message, -1)
-
-	if len(urls) == 0 {
+	if len(musicURLs) == 0 {
 		return false, ""
 	}
 
-	u, err := url.Parse(urls[0])
+	u, err := url.Parse(musicURLs[0])
 	if err != nil {
 		return false, ""
 	}
@@ -53,20 +52,20 @@ func filterMessage(message string) (bool, string) {
 	return false, ""
 }
 
-func buildSongLinkUrl(musicUrl string) (string, error) {
-	baseUrl, err := url.Parse(SongLinkBaseURL)
+func buildSongLinkURL(musicURL string) (string, error) {
+	baseURL, err := url.Parse(SongLinkBaseURL)
 	if err != nil {
 		return "", fmt.Errorf("error parsing base URL: %v", err)
 	}
 
 	params := url.Values{}
-	params.Add("url", musicUrl)
+	params.Add("url", musicURL)
 	params.Add("userCountry", SongLinkUserCountry)
 	params.Add("songIfSingle", "true")
 
-	baseUrl.RawQuery = params.Encode()
+	baseURL.RawQuery = params.Encode()
 
-	return baseUrl.String(), nil
+	return baseURL.String(), nil
 }
 
 func parseResponse(response *http.Response) (types.FinalLinks, error) {
@@ -91,13 +90,13 @@ func parseResponse(response *http.Response) (types.FinalLinks, error) {
 	}, nil
 }
 
-func GetSongLinkData(musicUrl string) (types.FinalLinks, error) {
-	url, err := buildSongLinkUrl(musicUrl)
+func GetSongLinkData(musicURL string) (types.FinalLinks, error) {
+	songLinkURL, err := buildSongLinkURL(musicURL)
 	if err != nil {
 		return types.FinalLinks{}, err
 	}
 
-	resp, err := http.Get(url)
+	resp, err := http.Get(songLinkURL)
 	if err != nil {
 		return types.FinalLinks{}, err
 	}
