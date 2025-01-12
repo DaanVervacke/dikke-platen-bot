@@ -11,11 +11,6 @@ import (
 	"strings"
 )
 
-const (
-	SongLinkBaseURL     = "https://api.song.link/v1-alpha.1/links"
-	SongLinkUserCountry = "BE"
-)
-
 var (
 	re    = regexp.MustCompile(`https?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(),]|%[0-9a-fA-F][0-9a-fA-F])+`)
 	hosts = map[string]struct{}{
@@ -25,6 +20,7 @@ var (
 		"www.youtube.com":    {},
 		"youtu.be":           {},
 		"soundcloud.com":     {},
+		"on.soundcloud.com":  {},
 		"www.soundcloud.com": {},
 		"music.apple.com":    {},
 		"www.apple.com":      {},
@@ -32,13 +28,13 @@ var (
 )
 
 func filterMessage(message string) (bool, string) {
-	musicURLs := re.FindAllString(message, -1)
+	songURLs := re.FindAllString(message, -1)
 
-	if len(musicURLs) == 0 {
+	if len(songURLs) == 0 {
 		return false, ""
 	}
 
-	u, err := url.Parse(musicURLs[0])
+	u, err := url.Parse(songURLs[0])
 	if err != nil {
 		return false, ""
 	}
@@ -52,15 +48,10 @@ func filterMessage(message string) (bool, string) {
 	return false, ""
 }
 
-func buildSongLinkURL(musicURL string) (string, error) {
-	baseURL, err := url.Parse(SongLinkBaseURL)
-	if err != nil {
-		return "", fmt.Errorf("error parsing base URL: %v", err)
-	}
-
+func buildURL(baseURL *url.URL, musicURL string) (string, error) {
 	params := url.Values{}
 	params.Add("url", musicURL)
-	params.Add("userCountry", SongLinkUserCountry)
+	params.Add("userCountry", "BE")
 	params.Add("songIfSingle", "true")
 
 	baseURL.RawQuery = params.Encode()
@@ -90,8 +81,8 @@ func parseResponse(response *http.Response) (types.FinalLinks, error) {
 	}, nil
 }
 
-func GetSongLinkData(musicURL string) (types.FinalLinks, error) {
-	songLinkURL, err := buildSongLinkURL(musicURL)
+func GetSongLinkData(baseURL *url.URL, songURL string) (types.FinalLinks, error) {
+	songLinkURL, err := buildURL(baseURL, songURL)
 	if err != nil {
 		return types.FinalLinks{}, err
 	}
@@ -100,16 +91,17 @@ func GetSongLinkData(musicURL string) (types.FinalLinks, error) {
 	if err != nil {
 		return types.FinalLinks{}, err
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return types.FinalLinks{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	finalLinks, err := parseResponse(resp)
+	links, err := parseResponse(resp)
 	if err != nil {
 		return types.FinalLinks{}, err
 	}
 
-	return finalLinks, nil
+	return links, nil
 }

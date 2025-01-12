@@ -7,25 +7,18 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"strconv"
 	"strings"
 )
 
-func buildTelegramWebhookUrl(telegramBaseURL string, webhookURL string, webhookSecret string) (string, error) {
-	baseURL, err := url.Parse(telegramBaseURL)
-	if err != nil {
-		return "", fmt.Errorf("error parsing base URL: %v", err)
-	}
+func buildWebhookURL(baseURL *url.URL, webhookURL string, webhookSecret string) (string, error) {
+	baseURL = baseURL.JoinPath("setWebhook")
 
-	baseURL.Path = path.Join(baseURL.Path, "setWebhook")
+	allowedUpdates, _ := json.Marshal([]string{"channel_post"})
 
 	params := url.Values{}
 	params.Add("url", webhookURL)
-
-	allowedUpdates, _ := json.Marshal([]string{"channel_post"})
 	params.Add("allowed_updates", string(allowedUpdates))
-
 	params.Add("secret_token", webhookSecret)
 
 	baseURL.RawQuery = params.Encode()
@@ -33,13 +26,8 @@ func buildTelegramWebhookUrl(telegramBaseURL string, webhookURL string, webhookS
 	return baseURL.String(), nil
 }
 
-func buildTelegramDeleteMessageUrl(telegramBaseURL string, update types.TelegramBotUpdate) (string, error) {
-	baseURL, err := url.Parse(telegramBaseURL)
-	if err != nil {
-		return "", fmt.Errorf("error parsing base URL: %v", err)
-	}
-
-	baseURL.Path = path.Join(baseURL.Path, "deleteMessage")
+func buildDeleteMessageURL(baseURL *url.URL, update types.TelegramBotUpdate) (string, error) {
+	baseURL = baseURL.JoinPath("deleteMessage")
 
 	params := url.Values{}
 	params.Add("chat_id", strconv.Itoa(update.Message.Chat.ID))
@@ -50,13 +38,8 @@ func buildTelegramDeleteMessageUrl(telegramBaseURL string, update types.Telegram
 	return baseURL.String(), nil
 }
 
-func buildTelegramEditMessageUrl(telegramBaseURL string, update types.TelegramBotUpdate, songLinkData types.FinalLinks) (string, error) {
-	baseURL, err := url.Parse(telegramBaseURL)
-	if err != nil {
-		return "", fmt.Errorf("error parsing base URL: %v", err)
-	}
-
-	baseURL.Path = path.Join(baseURL.Path, "sendMessage")
+func buildEditMessageURL(baseURL *url.URL, update types.TelegramBotUpdate, songLinkData types.FinalLinks) (string, error) {
+	baseURL = baseURL.JoinPath("sendMessage")
 
 	params := url.Values{}
 	params.Add("chat_id", strconv.Itoa(update.Message.Chat.ID))
@@ -90,8 +73,8 @@ func buildTelegramEditMessageUrl(telegramBaseURL string, update types.TelegramBo
 	return baseURL.String(), nil
 }
 
-func SetTelegramWebhook(telegramBaseUrl string, webhookUrl string, webhookSecret string) error {
-	webhookURL, err := buildTelegramWebhookUrl(telegramBaseUrl, webhookUrl, webhookSecret)
+func SetWebhook(baseURL *url.URL, webhookUrl string, webhookSecret string) error {
+	webhookURL, err := buildWebhookURL(baseURL, webhookUrl, webhookSecret)
 	if err != nil {
 		return err
 	}
@@ -110,8 +93,8 @@ func SetTelegramWebhook(telegramBaseUrl string, webhookUrl string, webhookSecret
 	return nil
 }
 
-func updateTelegramMessage(telegramBaseURL string, update types.TelegramBotUpdate, songLinkData types.FinalLinks) error {
-	deleteURL, err := buildTelegramDeleteMessageUrl(telegramBaseURL, update)
+func updateMessage(baseURL *url.URL, update types.TelegramBotUpdate, songLinkData types.FinalLinks) error {
+	deleteURL, err := buildDeleteMessageURL(baseURL, update)
 	if err != nil {
 		return err
 	}
@@ -128,7 +111,7 @@ func updateTelegramMessage(telegramBaseURL string, update types.TelegramBotUpdat
 
 	resp.Body.Close()
 
-	editUrl, err := buildTelegramEditMessageUrl(telegramBaseURL, update, songLinkData)
+	editUrl, err := buildEditMessageURL(baseURL, update, songLinkData)
 	if err != nil {
 		return err
 	}
@@ -148,7 +131,7 @@ func updateTelegramMessage(telegramBaseURL string, update types.TelegramBotUpdat
 	return nil
 }
 
-func HandleBotUpdate(r *http.Request, telegramBaseURL string, groupID int, webhookSecret string) error {
+func HandleBotUpdate(r *http.Request, baseURL *url.URL, groupID int, webhookSecret string, songLinkBaseURL *url.URL) error {
 	if r.Header.Get("X-Telegram-Bot-Api-Secret-Token") != webhookSecret {
 		return fmt.Errorf("invalid secret token")
 	}
@@ -157,6 +140,7 @@ func HandleBotUpdate(r *http.Request, telegramBaseURL string, groupID int, webho
 	if err != nil {
 		return err
 	}
+
 	defer r.Body.Close()
 
 	var update types.TelegramBotUpdate
@@ -170,17 +154,17 @@ func HandleBotUpdate(r *http.Request, telegramBaseURL string, groupID int, webho
 		return fmt.Errorf("invalid group id: %d", update.Message.Chat.ID)
 	}
 
-	ok, musicURL := filterMessage(update.Message.Text)
+	ok, songURL := filterMessage(update.Message.Text)
 	if !ok {
-		return fmt.Errorf("invalid url")
+		return fmt.Errorf("invalid song url")
 	}
 
-	songLinkdata, err := GetSongLinkData(musicURL)
+	songLinkdata, err := GetSongLinkData(songLinkBaseURL, songURL)
 	if err != nil {
 		return err
 	}
 
-	err = updateTelegramMessage(telegramBaseURL, update, songLinkdata)
+	err = updateMessage(baseURL, update, songLinkdata)
 	if err != nil {
 		return err
 	}
